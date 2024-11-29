@@ -31,7 +31,6 @@ def train_and_predict(data):
     # Assuming the model should predict 'compressive_strength' (we'll generate synthetic labels here)
     # Generate 'compressive_strength' as an example using some of the features.
     if "cement" in data.columns and "slag" in data.columns and "water" in data.columns:
-        # We'll make a synthetic target (compressive strength) by a weighted sum of some columns.
         st.write("Generating synthetic compressive strength for training...")
         data['compressive_strength'] = (0.5 * data['cement'] + 0.3 * data['slag'] + 0.2 * data['water'])
     else:
@@ -60,7 +59,7 @@ def train_and_predict(data):
     # Calculate performance (Mean Squared Error)
     mse = mean_squared_error(y_test, predictions)
 
-    return model, mse, X_test, y_test, predictions
+    return model, scaler, mse, X_test, y_test, predictions
 
 # Streamlit app layout
 def main():
@@ -71,7 +70,7 @@ def main():
 
     if data is not None:
         # Train the model and make predictions
-        model, mse, X_test, y_test, predictions = train_and_predict(data)
+        model, scaler, mse, X_test, y_test, predictions = train_and_predict(data)
 
         if model is not None:
             # Display performance metrics
@@ -102,7 +101,7 @@ def main():
                 if submit_button:
                     # New data for prediction (after scaling)
                     input_data = np.array([[cement, slag, water, superplastic, coarseagg, fineagg]])
-                    input_data_scaled = scaler.transform(input_data)
+                    input_data_scaled = scaler.transform(input_data)  # Correctly use the scaler here
                     prediction = model.predict(input_data_scaled)
                     st.write(f"Predicted Concrete Compressive Strength: {prediction[0]:.2f} MPa")
 
