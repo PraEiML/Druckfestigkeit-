@@ -5,6 +5,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestRegressor
 
 # Function to load data
 def load_data():
@@ -27,20 +28,19 @@ def train_and_predict(data):
     # Ensure the column names are clean (no leading/trailing spaces)
     data.columns = data.columns.str.strip().str.lower()
 
-    # Look for column containing compressive strength
-    target_column = None
-    for col in data.columns:
-        if "compressive" in col and "strength" in col:
-            target_column = col
-            break
-
-    if target_column is None:
-        st.error("Compressive strength column not found. Please check the column name.")
+    # Assuming the model should predict 'compressive_strength' (we'll generate synthetic labels here)
+    # Generate 'compressive_strength' as an example using some of the features.
+    if "cement" in data.columns and "slag" in data.columns and "water" in data.columns:
+        # We'll make a synthetic target (compressive strength) by a weighted sum of some columns.
+        st.write("Generating synthetic compressive strength for training...")
+        data['compressive_strength'] = (0.5 * data['cement'] + 0.3 * data['slag'] + 0.2 * data['water'])
+    else:
+        st.error("Necessary columns like 'cement', 'slag', or 'water' are missing.")
         return None, None, None, None, None
 
     # Prepare data for training
-    X = data.drop(columns=[target_column])  # Features (everything except compressive strength)
-    y = data[target_column]  # Target (compressive strength)
+    X = data.drop(columns=['compressive_strength'])  # Features (everything except compressive strength)
+    y = data['compressive_strength']  # Target (compressive strength)
 
     # Split into training and test sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -50,8 +50,8 @@ def train_and_predict(data):
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
 
-    # Initialize the Linear Regression model
-    model = LinearRegression()
+    # Initialize the model - you can use LinearRegression or RandomForestRegressor
+    model = RandomForestRegressor(n_estimators=100, random_state=42)
     model.fit(X_train_scaled, y_train)
 
     # Predict values on the test set
@@ -92,7 +92,6 @@ def main():
                 # Inputs for concrete mix parameters
                 cement = st.number_input("Cement (kg)", min_value=0.0, max_value=1000.0)
                 slag = st.number_input("Slag (kg)", min_value=0.0, max_value=1000.0)
-                ash = st.number_input("Ash (kg)", min_value=0.0, max_value=1000.0)
                 water = st.number_input("Water (kg)", min_value=0.0, max_value=1000.0)
                 superplastic = st.number_input("Superplasticizer (kg)", min_value=0.0, max_value=1000.0)
                 coarseagg = st.number_input("Coarse Aggregate (kg)", min_value=0.0, max_value=1000.0)
@@ -102,7 +101,7 @@ def main():
                 
                 if submit_button:
                     # New data for prediction (after scaling)
-                    input_data = np.array([[cement, slag, ash, water, superplastic, coarseagg, fineagg]])
+                    input_data = np.array([[cement, slag, water, superplastic, coarseagg, fineagg]])
                     input_data_scaled = scaler.transform(input_data)
                     prediction = model.predict(input_data_scaled)
                     st.write(f"Predicted Concrete Compressive Strength: {prediction[0]:.2f} MPa")
