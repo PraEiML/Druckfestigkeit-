@@ -58,7 +58,7 @@ def train_and_predict(data):
 
 # Streamlit app layout
 def main():
-    st.title("Concrete Strength Prediction")
+    st.title("Concrete Strength Prediction (Betonfestigkeit)")
 
     # Load data
     data = load_data()
