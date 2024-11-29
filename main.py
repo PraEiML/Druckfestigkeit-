@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
@@ -9,7 +10,12 @@ def load_data():
     uploaded_file = st.file_uploader("Upload Concrete Data CSV", type="csv")
     if uploaded_file is not None:
         data = pd.read_csv(uploaded_file)
-        st.write("Columns in the dataset:", data.columns)  # Check the columns
+        
+        # Clean column names by stripping leading/trailing spaces
+        data.columns = data.columns.str.strip()
+        
+        # Display the columns in the dataset for debugging
+        st.write("Columns in the dataset:", data.columns)
         return data
     else:
         st.error("Please upload a CSV file.")
@@ -51,6 +57,11 @@ def main():
     data = load_data()
 
     if data is not None:
+        # Check if the dataset has the required column
+        if "CompressiveStrength" not in data.columns:
+            st.error("The column 'CompressiveStrength' is not present in the uploaded file.")
+            return
+
         # Train model and predict
         model, mse, X_test, y_test, predictions = train_and_predict(data)
 
