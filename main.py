@@ -11,8 +11,8 @@ def load_data():
     if uploaded_file is not None:
         data = pd.read_csv(uploaded_file)
         
-        # Clean column names by stripping leading/trailing spaces
-        data.columns = data.columns.str.strip()
+        # Clean column names by stripping leading/trailing spaces and converting to lowercase
+        data.columns = data.columns.str.strip().str.lower()
         
         # Display the columns in the dataset for debugging
         st.write("Columns in the dataset:", data.columns.tolist())  # Print column names as a list
@@ -24,17 +24,20 @@ def load_data():
 # Function to train a model and predict strength
 def train_and_predict(data):
     # Ensure the column names are clean (no leading/trailing spaces)
-    data.columns = data.columns.str.strip()
+    data.columns = data.columns.str.strip().str.lower()
 
-    # Check if 'CompressiveStrength' exists or similar columns
-    if "CompressiveStrength" in data.columns:
-        target_column = "CompressiveStrength"
-    elif "compressive_strength" in data.columns:  # Handle case-insensitive column names
-        target_column = "compressive_strength"
-    else:
+    # Check if 'compressivestrength' exists or similar columns
+    target_column = None
+    for col in data.columns:
+        if "compressive" in col and "strength" in col:
+            target_column = col
+            break
+    
+    if target_column is None:
         st.error("Column for compressive strength not found. Please check the column name.")
         return None, None, None, None, None
 
+    # Proceed with the target column found
     X = data.drop(columns=[target_column])
     y = data[target_column]
 
