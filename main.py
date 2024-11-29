@@ -4,8 +4,9 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
+from sklearn.preprocessing import StandardScaler
 
-# Function to load the dataset
+# Function to load data
 def load_data():
     uploaded_file = st.file_uploader("Upload Concrete Data CSV", type="csv")
     if uploaded_file is not None:
@@ -14,44 +15,49 @@ def load_data():
         # Clean column names by stripping leading/trailing spaces and converting to lowercase
         data.columns = data.columns.str.strip().str.lower()
         
-        # Display the columns in the dataset for debugging
-        st.write("Columns in the dataset:", data.columns.tolist())  # Print column names as a list
+        # Display columns in the dataset for debugging
+        st.write("Columns in the dataset:", data.columns.tolist())
         return data
     else:
         st.error("Please upload a CSV file.")
         return None
 
-# Function to train a model and predict strength
+# Function to train a machine learning model and predict
 def train_and_predict(data):
     # Ensure the column names are clean (no leading/trailing spaces)
     data.columns = data.columns.str.strip().str.lower()
 
-    # Check if 'compressivestrength' exists or similar columns
+    # Look for column containing compressive strength
     target_column = None
     for col in data.columns:
         if "compressive" in col and "strength" in col:
             target_column = col
             break
-    
+
     if target_column is None:
-        st.error("Column for compressive strength not found. Please check the column name.")
+        st.error("Compressive strength column not found. Please check the column name.")
         return None, None, None, None, None
 
-    # Proceed with the target column found
-    X = data.drop(columns=[target_column])
-    y = data[target_column]
+    # Prepare data for training
+    X = data.drop(columns=[target_column])  # Features (everything except compressive strength)
+    y = data[target_column]  # Target (compressive strength)
 
-    # Split the data into training and testing sets
+    # Split into training and test sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Create and train the model
+    # Scale features (important for many models, especially if the features have different scales)
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+
+    # Initialize the Linear Regression model
     model = LinearRegression()
-    model.fit(X_train, y_train)
+    model.fit(X_train_scaled, y_train)
 
-    # Make predictions
-    predictions = model.predict(X_test)
+    # Predict values on the test set
+    predictions = model.predict(X_test_scaled)
 
-    # Calculate performance (e.g., Mean Squared Error)
+    # Calculate performance (Mean Squared Error)
     mse = mean_squared_error(y_test, predictions)
 
     return model, mse, X_test, y_test, predictions
@@ -60,11 +66,11 @@ def train_and_predict(data):
 def main():
     st.title("Concrete Strength Prediction (Betonfestigkeit)")
 
-    # Load data
+    # Load the dataset
     data = load_data()
 
     if data is not None:
-        # Train model and predict
+        # Train the model and make predictions
         model, mse, X_test, y_test, predictions = train_and_predict(data)
 
         if model is not None:
@@ -72,7 +78,7 @@ def main():
             st.write("### Model Performance:")
             st.write(f"Mean Squared Error: {mse:.2f}")
 
-            # Display prediction vs true values
+            # Display comparison between true and predicted values
             st.write("### Predictions vs Actual Values:")
             comparison_df = pd.DataFrame({
                 "True Values": y_test,
@@ -83,7 +89,7 @@ def main():
             # Option to input new data for prediction
             st.write("### Predict Concrete Strength:")
             with st.form("predict_form"):
-                st.write("Enter values for the following features:")
+                # Inputs for concrete mix parameters
                 cement = st.number_input("Cement (kg)", min_value=0.0, max_value=1000.0)
                 slag = st.number_input("Slag (kg)", min_value=0.0, max_value=1000.0)
                 ash = st.number_input("Ash (kg)", min_value=0.0, max_value=1000.0)
@@ -95,8 +101,10 @@ def main():
                 submit_button = st.form_submit_button(label="Predict")
                 
                 if submit_button:
+                    # New data for prediction (after scaling)
                     input_data = np.array([[cement, slag, ash, water, superplastic, coarseagg, fineagg]])
-                    prediction = model.predict(input_data)
+                    input_data_scaled = scaler.transform(input_data)
+                    prediction = model.predict(input_data_scaled)
                     st.write(f"Predicted Concrete Compressive Strength: {prediction[0]:.2f} MPa")
 
 if __name__ == "__main__":
