@@ -15,7 +15,7 @@ def load_data():
         data.columns = data.columns.str.strip()
         
         # Display the columns in the dataset for debugging
-        st.write("Columns in the dataset:", data.columns)
+        st.write("Columns in the dataset:", data.columns.tolist())  # Print column names as a list
         return data
     else:
         st.error("Please upload a CSV file.")
@@ -26,28 +26,32 @@ def train_and_predict(data):
     # Ensure the column names are clean (no leading/trailing spaces)
     data.columns = data.columns.str.strip()
 
-    # Check if 'CompressiveStrength' exists
+    # Check if 'CompressiveStrength' exists or similar columns
     if "CompressiveStrength" in data.columns:
-        X = data.drop(columns=["CompressiveStrength"])
-        y = data["CompressiveStrength"]
-
-        # Split the data into training and testing sets
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-        # Create and train the model
-        model = LinearRegression()
-        model.fit(X_train, y_train)
-
-        # Make predictions
-        predictions = model.predict(X_test)
-
-        # Calculate performance (e.g., Mean Squared Error)
-        mse = mean_squared_error(y_test, predictions)
-
-        return model, mse, X_test, y_test, predictions
+        target_column = "CompressiveStrength"
+    elif "compressive_strength" in data.columns:  # Handle case-insensitive column names
+        target_column = "compressive_strength"
     else:
-        st.error("CompressiveStrength column not found in the dataset.")
+        st.error("Column for compressive strength not found. Please check the column name.")
         return None, None, None, None, None
+
+    X = data.drop(columns=[target_column])
+    y = data[target_column]
+
+    # Split the data into training and testing sets
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    # Create and train the model
+    model = LinearRegression()
+    model.fit(X_train, y_train)
+
+    # Make predictions
+    predictions = model.predict(X_test)
+
+    # Calculate performance (e.g., Mean Squared Error)
+    mse = mean_squared_error(y_test, predictions)
+
+    return model, mse, X_test, y_test, predictions
 
 # Streamlit app layout
 def main():
@@ -57,11 +61,6 @@ def main():
     data = load_data()
 
     if data is not None:
-        # Check if the dataset has the required column
-        if "CompressiveStrength" not in data.columns:
-            st.error("The column 'CompressiveStrength' is not present in the uploaded file.")
-            return
-
         # Train model and predict
         model, mse, X_test, y_test, predictions = train_and_predict(data)
 
